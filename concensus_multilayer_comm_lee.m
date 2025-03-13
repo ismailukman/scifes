@@ -2,7 +2,7 @@
 clear;
 clc;
 
-%% Parameter Initialization
+%%7a. Parameter Initialization
 gamma = 1.21; % Resolution parameter
 log_omega = -1; % Logarithm of inter-layer coupling
 omega = 10^log_omega; % Inter-layer coupling value
@@ -10,7 +10,7 @@ omega = 10^log_omega; % Inter-layer coupling value
 % gamma=1; 
 % omega=1; 
 
-% Load adjacency matrices 
+%7b. Load correlation matrices 
 corr_g1 = permute(cell2mat(struct2cell(load('/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes.mat'))), [2 3 1]);
 corr_g2 = permute(cell2mat(struct2cell(load('/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes.mat'))), [2 3 1]);
 
@@ -41,7 +41,7 @@ Q_g2 = Q_g2/twom_g2;
 S_g2 = reshape(S_g2, N, T_g2);
 comm_num_g2 = max(S_g2,[],'all'); % number of communities
 
-%% Consensus Community Detection
+%%7di. Consensus Community Detection
 % multi-layer community structure within individuals (individual level)
 multi_comm_indivi_g1 = multilayer_community_detection_individual(...
     A_g1, 'cat', 100, 'max', 1, 1);  % A_g1, 'cat', 100, 'max', gamma, omega
@@ -68,7 +68,7 @@ end
 % multi_module_consensus_sorted
 
 % pause(2);
-% consensus community structure across individuals (group level)
+%7dii. consensus community structure across individuals (group level)
 multi_comm_group_g1 = multilayer_community_detection_group(multi_comm_indivi_g1, ...
     100, 'max', 1);
 multi_comm_group_g2 = multilayer_community_detection_group(multi_comm_indivi_g2, ...
@@ -76,7 +76,7 @@ multi_comm_group_g2 = multilayer_community_detection_group(multi_comm_indivi_g2,
 N_all_group_g1 = multi_comm_group_g1.multi_module_consensus;
 N_all_group_g2 = multi_comm_group_g2.multi_module_consensus;
 
-%% Save Results
+%%7e. Save Results
 % output_dir = '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/modularity_var/';
 
 cd '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/modularity_var/';
