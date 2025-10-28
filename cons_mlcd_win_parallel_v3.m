@@ -3,8 +3,8 @@ clear;
 clc;
 
 %% Parameter Initialization
-gamma = 1.2; %1.2; 1.21
-omega = 1.5; %1.5; 0.1
+gamma = 1; %1.2; 1.21
+omega = 1; %1.5; 0.1
 
 % ---------- Trying to use all local cores ----------
 if isempty(gcp('nocreate'))
@@ -13,10 +13,10 @@ end
 
 %% MANUAL CONFIGURATION: Number of subjects per group
 % Based on my Python output with flatten subjects x windows -> (S*W, R, R) 
-n_subjects_g1 = 1;  % PreFES:  (7, 396, 200, 200) -> (2772, 200, 200)
-n_subjects_g2 = 1;  % PreNFES: (5, 396, 200, 200) -> (1980, 200, 200)
-n_subjects_g3 = 1;  % PostFES: (7, 396, 200, 200) -> (2772, 200, 200)
-n_subjects_g4 = 1;  % PostNFES: (5, 396, 200, 200) -> (1980, 200, 200)
+n_subjects_g1 = 7;  % PreFES:  (7, 396, 200, 200) -> (2772, 200, 200)
+n_subjects_g2 = 5;  % PreNFES: (5, 396, 200, 200) -> (1980, 200, 200)
+n_subjects_g3 = 7;  % PostFES: (7, 396, 200, 200) -> (2772, 200, 200)
+n_subjects_g4 = 5;  % PostNFES: (5, 396, 200, 200) -> (1980, 200, 200)
 
 fprintf('===== SUBJECT CONFIGURATION =====\n');
 fprintf('PreFES:   %d subjects\n', n_subjects_g1);
@@ -29,15 +29,15 @@ fprintf('Loading data files...\n');
 tic;
 
 file_paths = {
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1subj.mat'
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1subj.mat'
     % 
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows.mat'
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows.mat'
 
     % For supergroup mlcd
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_FES_1tr_windows.mat';
