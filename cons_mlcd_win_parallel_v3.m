@@ -3,8 +3,8 @@ clear;
 clc;
 
 %% Parameter Initialization
-gamma = 1.2; %1.2; 1.21
-omega = 1.5; %1.5; 0.1
+gamma = 1; %1.2; 1.21; 1
+omega = 1; %1.5; 0.1; 1
 
 % ---------- Trying to use all local cores ----------
 if isempty(gcp('nocreate'))
@@ -13,10 +13,10 @@ end
 
 %% MANUAL CONFIGURATION: Number of subjects per group
 % Based on my Python output with flatten subjects x windows -> (S*W, R, R) 
-n_subjects_g1 = 7;  % PreFES:  (7, 396, 200, 200) -> (2772, 200, 200)
-n_subjects_g2 = 5;  % PreNFES: (5, 396, 200, 200) -> (1980, 200, 200)
-n_subjects_g3 = 7;  % PostFES: (7, 396, 200, 200) -> (2772, 200, 200)
-n_subjects_g4 = 5;  % PostNFES: (5, 396, 200, 200) -> (1980, 200, 200)
+n_subjects_g1 = 7;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g2 = 5;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g3 = 7;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g4 = 5;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
 
 fprintf('===== SUBJECT CONFIGURATION =====\n');
 fprintf('PreFES:   %d subjects\n', n_subjects_g1);
