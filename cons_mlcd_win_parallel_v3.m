@@ -3,8 +3,8 @@ clear;
 clc;
 
 %% Parameter Initialization
-gamma = 1; %1.2; 1.21; 1
-omega = 1; %1.5; 0.1; 1
+gamma = 1.2; %1.2; 1.21; 1
+omega = 1.5; %1.5; 0.1; 1
 
 % ---------- Trying to use all local cores ----------
 if isempty(gcp('nocreate'))
