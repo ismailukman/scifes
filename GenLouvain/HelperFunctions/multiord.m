@@ -103,31 +103,58 @@ function [B,twom] = multiord(A,gamma,omega)
 %     for their collaborative help which led to significant cleaning up
 %     of earlier versions of our multilayer community detection codes.
 
-
+% Step 1: Set default parameters if not provided
 if nargin<2
-gamma=1;
+gamma=1; % Default resolution parameter = 1
 end
 
 if nargin<3
-omega=1;
+omega=1; % Default interlayer coupling = 1
 end
 
-N=length(A{1});
-T=length(A);
+% Step 2: Extract network dimensions
+N=length(A{1});  % Number of nodes (brain regions) in each layer
+T=length(A);     % Number of layers (time windows)
 
+
+% Step 3: Handle scalar or vector gamma (allows different resolution per layer)
 if length(gamma)==1
 gamma=repmat(gamma,T,1);
 end
 
+% Step 4: Pre-allocate sparse modularity matrix B
+% Size: (N×T) × (N×T) to hold all node-layer combinations
+% Estimated non-zero elements: N²T (intralayer) + 2NT (interlayer)
 B=spalloc(N*T,N*T,N*N*T+2*N*T);
-twom=0;
+twom=0; % Initialize total edge weight (normalization constant)
+
+% Step 5: Build intralayer modularity matrices for each layer
 for s=1:T
-    kout=sum(A{s},1);
-    kin=sum(A{s},2);
-    mm=sum(kout);
-	twom=twom+mm;
+    % Step 5a: Compute degree sequences for layer s
+    kout=sum(A{s},1);  % Out-degree (row sum): [1 × N] vector
+    kin=sum(A{s},2);   % In-degree (column sum): [N × 1] vector
+    mm=sum(kout);      % Total edge weight in layer s
+    twom=twom+mm;      % Accumulate total edges across all layers
+    
+    % Step 5b: Calculate node-layer indices for this layer
+    % Maps (node i, layer s) to position i + (s-1)*N in flattened matrix
     indx=[1:N]+(s-1)*N;
+    
+    % Step 5c: Build Newman-Girvan modularity matrix for layer s
+    % Formula: B_ij = (A_ij + A_ji)/2 - gamma * (k_i*k_j + k_j*k_i)/(2m)
+    % This penalizes edges expected under configuration model
     B(indx,indx)=(A{s}+A{s}')/2-gamma(s)/2.*((kin*kout+kout'*kin')/mm);
 end
+
+% Step 6: Add interlayer coupling (NEAREST-NEIGHBOR ONLY)
+% Creates diagonal offsets connecting ONLY ADJACENT layers
+% For T=3: connects layer 1-2, 2-3 (but NOT 1-3)
+% Offset -N: connects layer s to layer s-1
+% Offset +N: connects layer s to layer s+1
 B = B + omega*spdiags(ones(N*T,2),[-N,N],N*T,N*T);
+
+% Step 7: Update normalization constant with interlayer coupling
+% Only adjacent layers connected: (T-1) pairs of connections
+% Each pair has 2N connections (N nodes × 2 directions)
+% Total interlayer connections: 2*N*(T-1)
 twom=twom+2*N*(T-1)*omega;
