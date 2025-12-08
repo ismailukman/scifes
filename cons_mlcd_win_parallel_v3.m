@@ -3,8 +3,8 @@ clear;
 clc;
 
 %% Parameter Initialization
-gamma = 1.2; %1.2; 1.21; 1
-omega = 1.5; %1.5; 0.1; 1
+gamma = 1.0; %1.2; 1.21; 1
+omega = 1.0; %1.5; 0.1; 1
 
 % ---------- Trying to use all local cores ----------
 if isempty(gcp('nocreate'))
@@ -13,10 +13,10 @@ end
 
 %% MANUAL CONFIGURATION: Number of subjects per group
 % Based on my Python output with flatten subjects x windows -> (S*W, R, R) 
-n_subjects_g1 = 1;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g2 = 1;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
-n_subjects_g3 = 1;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g4 = 1;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g1 = 7;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g2 = 5;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g3 = 7;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g4 = 5;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
 
 fprintf('===== SUBJECT CONFIGURATION =====\n');
 fprintf('PreFES:   %d subjects\n', n_subjects_g1);
@@ -29,15 +29,20 @@ fprintf('Loading data files...\n');
 tic;
 
 file_paths = {
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1subj.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1subj.mat'
-    % 
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1subj.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1subj.mat'
+    % % 
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows.mat'
+
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_v1.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_v1.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_v1.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_v1.mat'
 
     % For supergroup mlcd
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_FES_1tr_windows.mat';
@@ -62,6 +67,7 @@ fprintf('Processing correlation matrices...\n');
 
 corr_g_all = cell(4, 1);
 T_g_all = zeros(4, 1);
+n_subjects_array = [n_subjects_g1, n_subjects_g2, n_subjects_g3, n_subjects_g4];
 
 parfor grp = 1:4
     % Each file has ONE variable corr_<group> with shape (subjects*windows, R, R)
@@ -80,8 +86,13 @@ parfor grp = 1:4
     corr_g(maskI) = 1;
     corr_g(~isfinite(corr_g)) = 0;
     
+    % Randomize window order per subject (50 windows each)
+    % corr_g = randomize_windows_per_subject(corr_g, n_subjects_array(grp));
+
     corr_g_all{grp} = corr_g;
     T_g_all(grp) = T_g;
+
+
 end
 
 
@@ -108,7 +119,6 @@ clear S_all corr_g_all
 %% Prepare and reshape adjacency matrices
 fprintf('\nPreparing adjacency matrices...\n');
 
-
 % Create cell arrays
 A_g1 = squeeze(num2cell(corr_g1, [1,2]));
 A_g2 = squeeze(num2cell(corr_g2, [1 2]));
@@ -131,7 +141,6 @@ A_g4_reshaped = reshape_for_multilayer(A_g4, n_subjects_g4, T_g4, 'PostNFES');
 
 %% Multi-layer Modularity Calculation IN PARALLEL
 fprintf('\n===== COMPUTING MULTILAYER MODULARITY =====\n');
-
 
 % Store reshaped data in cell array for parallel processing
 A_reshaped_all = {A_g1_reshaped, A_g2_reshaped, A_g3_reshaped, A_g4_reshaped};
@@ -182,10 +191,8 @@ S_g3 = S_g_all{3}; Q_g3 = Q_g_all(3); comm_g3 = comm_all(3);
 S_g4 = S_g_all{4}; Q_g4 = Q_g_all(4); comm_g4 = comm_all(4);
 
 
-
 %% Consensus Community Detection IN PARALLEL
 fprintf('\n===== COMPUTING INDIVIDUAL MULTILAYER COMMUNITIES =====\n');
-
 
 multi_comm_indivi_all = cell(4, 1);
 
@@ -207,20 +214,25 @@ multi_comm_indivi_g4 = multi_comm_indivi_all{4};
 fprintf('\nExtracting consensus partitions...\n');
 
 N_all_g_all = cell(4, 1);
+comm_num_g_all = cell(4, 1);
+Qmod_g_all = cell(4, 1);
 
 parfor grp = 1:4
     n_subj = numel(multi_comm_indivi_all{grp});
     N_all_cell = cell(1, n_subj);
-    comm_num_cell = cell(1, n_subj);
+    comm_num_cell = cell(1, n_subj); Qmod = cell(1, n_subj)
     
     for subj_i = 1:n_subj
         subj_data = multi_comm_indivi_all{grp}{subj_i};
         N_all_cell{subj_i} = subj_data.multi_module_consensus;
         comm_num_cell{subj_i} = max(subj_data.multi_comm_consensus);
+        Qmod{subj_i} = mode(cell2mat(subj_data.multi_modQ));
+        
     end
     
     N_all_g_all{grp} = [N_all_cell{:}];
     comm_num_g_all{grp} = [comm_num_cell{:}];
+    Qmod_g_all{grp} = [Qmod{:}];
 end
 
 % Extract individual group results
@@ -233,6 +245,11 @@ comm_cons_g1 = comm_num_g_all{1};
 comm_cons_g2 = comm_num_g_all{2};
 comm_cons_g3 = comm_num_g_all{3};
 comm_cons_g4 = comm_num_g_all{4};
+
+Qmod_g1 = Qmod_g_all{1};
+Qmod_g2 = Qmod_g_all{2};
+Qmod_g3 = Qmod_g_all{3};
+Qmod_g4 = Qmod_g_all{4};
 
 %% Verify shapes match
 fprintf('\n===== SHAPE VERIFICATION =====\n');
@@ -252,36 +269,36 @@ if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 out_prefes = struct();
 out_prefes.N_all_g_prefes = N_all_g1;
 out_prefes.S_g_prefes = S_g1;
-out_prefes.Q_g_prefes = Q_g1;
+out_prefes.Q_g_prefes = Qmod_g1;
 out_prefes.comm_cons_all_g_prefes = comm_cons_g1;
-save(fullfile(out_dir, 'mlcd_prefes_1tr_wins.mat'), '-struct', 'out_prefes', '-v7.3');
+save(fullfile(out_dir, 'mlcd_prefes_8tr_wins.mat'), '-struct', 'out_prefes', '-v7.3');
 fprintf('Saved mlcd_prefes_8tr_wins.mat\n');
 
 % Save Group 2 (PreNFES)
 out_prenfes = struct();
 out_prenfes.N_all_g_prenfes = N_all_g2;
 out_prenfes.S_g_prenfes = S_g2;
-out_prenfes.Q_g_prenfes = Q_g2;
+out_prenfes.Q_g_prenfes = Qmod_g2;
 out_prenfes.comm_cons_all_g_prenfes = comm_cons_g2;
-save(fullfile(out_dir, 'mlcd_prenfes_1tr_wins.mat'), '-struct', 'out_prenfes', '-v7.3');
+save(fullfile(out_dir, 'mlcd_prenfes_8tr_wins.mat'), '-struct', 'out_prenfes', '-v7.3');
 fprintf('Saved mlcd_prenfes_8tr_wins.mat\n');
 
 % Save Group 3 (PostFES)
 out_postfes = struct();
 out_postfes.N_all_g_postfes = N_all_g3;
 out_postfes.S_g_postfes = S_g3;
-out_postfes.Q_g_postfes = Q_g3;
+out_postfes.Q_g_postfes = Qmod_g3;
 out_postfes.comm_cons_all_g_postfes = comm_cons_g3;
-save(fullfile(out_dir, 'mlcd_postfes_1tr_wins.mat'), '-struct', 'out_postfes', '-v7.3');
+save(fullfile(out_dir, 'mlcd_postfes_8tr_wins.mat'), '-struct', 'out_postfes', '-v7.3');
 fprintf('Saved mlcd_postfes_8tr_wins.mat\n');
 
 % Save Group 4 (PostNFES)
 out_postnfes = struct();
 out_postnfes.N_all_g_postnfes = N_all_g4;
 out_postnfes.S_g_postnfes = S_g4;
-out_postnfes.Q_g_postnfes = Q_g4;
+out_postnfes.Q_g_postnfes = Qmod_g4;
 out_postnfes.comm_cons_all_g_postnfes = comm_cons_g4;
-save(fullfile(out_dir, 'mlcd_postnfes_1tr_wins.mat'), '-struct', 'out_postnfes', '-v7.3');
+save(fullfile(out_dir, 'mlcd_postnfes_8tr_wins.mat'), '-struct', 'out_postnfes', '-v7.3');
 fprintf('Saved mlcd_postnfes_8tr_wins.mat\n');
 
 fprintf('Done in %.2f seconds\n', toc);

@@ -87,6 +87,7 @@ n_node = size(A{1,1}, 1);
 
 fprintf('Multilayer community detection... \n');
 fprintf('n_subj is %d, n_run is %d\n and n_node is %d \n', n_subj, n_run, n_node);
+fprintf('gamma is %.2f, omega is %.2f, coupling_type is %s \n', gamma, omega, coupling_type);
 
 %4. Iterate through each subject and construct the multilayer modularity matrix
 for subj_i = 1:n_subj
@@ -96,6 +97,8 @@ for subj_i = 1:n_subj
     switch coupling_type
         case 'ord' %Runs are time-continuous.
             [B,twomu] = multiord(A(subj_i,:),gamma,omega);
+            fprintf('multiord returns: B [%d x %d], twomu = %.2f\n', size(B,1), size(B,2), twomu);
+            % multiord returns B, which is a sparse modularity matrix (often huge), and twomu, a scalar normalization constant.
         case 'cat' %Runs are not time-continuous.
             [B,twomu] = multicat(A(subj_i,:),gamma,omega);
         otherwise
@@ -112,6 +115,7 @@ for subj_i = 1:n_subj
         N{subj_i}.multi_modmm{rep_i} = twomu; % normalizing factor
         N{subj_i}.multi_niter{rep_i} = n_iter; % number of iterations
         N{subj_i}.multi_module{rep_i} = reshape(S, n_node, n_run); % community assignments
+        N{subj_i}.multi_comm{rep_i} = max(S, [], 'all'); % Number of communities
     end
 
     %6. Iterate through each run for consensus detection
@@ -129,9 +133,10 @@ for subj_i = 1:n_subj
 
 
             %6c. Identify nodes that participate in communities
-            wh_conn = any(allegiance_mat ~= 0);
+            wh_conn = any(allegiance_mat ~= 0); % retuns a logical row vector
+            % wh_conn(i) = true if node i has at least one non-zero connection.
             allegiance_mat = allegiance_mat(wh_conn, wh_conn);
-
+            fprintf('allegiance_mat: [%d x %d] \n', size(allegiance_mat,1), size(allegiance_mat,2));
             cons_comm = NaN(n_node, n_repeat);  % Initialize community matrix
             
             %run checks on A and g length
@@ -142,6 +147,7 @@ for subj_i = 1:n_subj
             
             allegiance_mat_out = allegiance_mat; % Store allegiance matrix
             [B, ~] = modularity(allegiance_mat, gamma); % Compute modularity matrix
+            fprintf('modularity returns: B [%d x %d] \n', size(B,1), size(B,2));
             allegiance_mat = []; % Clear allegiance matrix to save memory
             
             %6d. Perform Louvain community detection on allegiance matrix
@@ -157,6 +163,7 @@ for subj_i = 1:n_subj
                 N{subj_i}.multi_module_consensus(:,run_i) = cons_comm(:,1);% Store consensus communities
                 N{subj_i}.multi_niter_consensus(:,run_i) = cons_iter; % Store number of iterations taken
                 N{subj_i}.multi_permmax_consensus{run_i} = perm_max; % Store permutation results
+                N{subj_i}.multi_comm_consensus(run_i) = max(cons_comm(:,1), [], 'all'); % Number of communities in consensus
                 perm_max = []; % Clear permutation storage
                 break; % Exit loop if consensus is reached
             end
