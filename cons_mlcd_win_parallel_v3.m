@@ -13,10 +13,10 @@ end
 
 %% MANUAL CONFIGURATION: Number of subjects per group
 % Based on my Python output with flatten subjects x windows -> (S*W, R, R) 
-n_subjects_g1 = 7;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g2 = 5;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
-n_subjects_g3 = 7;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g4 = 5;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g1 = 1;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g2 = 1;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g3 = 1;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g4 = 1;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
 
 fprintf('===== SUBJECT CONFIGURATION =====\n');
 fprintf('PreFES:   %d subjects\n', n_subjects_g1);
@@ -29,20 +29,25 @@ fprintf('Loading data files...\n');
 tic;
 
 file_paths = {
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1subj.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1subj.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1subj.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1subj.mat'
-    % % 
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
-    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows.mat'
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1sub.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1sub.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1sub.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1sub.mat'
 
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_v1.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_v1.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_v1.mat';
-    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_v1.mat'
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
+    '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows.mat'
+
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_1sub_RANDOM.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1sub_RANDOM.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1sub_RANDOM.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1sub_RANDOM.mat'
+
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows_v1.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_v1.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_v1.mat';
+    % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_v1.mat'
 
     % For supergroup mlcd
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_FES_1tr_windows.mat';
@@ -60,7 +65,6 @@ parfor i = 1:4
     fn = fieldnames(S_all{i});
     corr_fields_all{i} = fn(startsWith(fn,'corr_') & ~strcmp(fn,'__meta__'));
 end
- 
 
 %% Stack and clean correlation matrices IN PARALLEL
 fprintf('Processing correlation matrices...\n');
@@ -87,14 +91,12 @@ parfor grp = 1:4
     corr_g(~isfinite(corr_g)) = 0;
     
     % Randomize window order per subject (50 windows each)
-    % corr_g = randomize_windows_per_subject(corr_g, n_subjects_array(grp));
+    corr_g = randomize_windows_per_subject(corr_g, n_subjects_array(grp));
 
     corr_g_all{grp} = corr_g;
     T_g_all(grp) = T_g;
 
-
 end
-
 
 % Extract individual groups
 corr_g1 = corr_g_all{1}; T_g1 = T_g_all(1);
@@ -138,6 +140,9 @@ A_g4_reshaped = reshape_for_multilayer(A_g4, n_subjects_g4, T_g4, 'PostNFES');
 % A_g3_reshaped = A_g3;
 % A_g4_reshaped = A_g4;
 
+% To-do
+%Top 5%, 10%, 15%, 20%, and 30% edge density levels. 
+
 
 %% Multi-layer Modularity Calculation IN PARALLEL
 fprintf('\n===== COMPUTING MULTILAYER MODULARITY =====\n');
@@ -148,47 +153,51 @@ n_subjects_all = [n_subjects_g1, n_subjects_g2, n_subjects_g3, n_subjects_g4];
 group_names = {'PreFES', 'PreNFES', 'PostFES', 'PostNFES'};
 
 % Initialize output arrays
-S_g_all = cell(4, 1);
-Q_g_all = zeros(4, 1);
+% S_g_all = cell(4, 1);
+% Q_g_all = zeros(4, 1);
 comm_num_all = zeros(4, 1);
 
-parfor grp = 1:4
-    fprintf('Processing %s modularity...\n', group_names{grp});
-    
-    n_subj = n_subjects_all(grp);
-    wins_per_subj = size(A_reshaped_all{grp}, 2);
-    
-    % Initialize S_g to collect all subjects
-    S_g_full = [];
-    
-    % Compute modularity for ALL subjects in this group
-    for subj_i = 1:n_subj
-        [B_g, twom_g] = multicat(A_reshaped_all{grp}(subj_i,:), gamma, omega);
-        postprocess_fn = @(S) postprocess_categorical_multilayer(S, wins_per_subj);
-        [S_g, Q_g] = iterated_genlouvain(B_g, 10000, 0, 1, 'moverandw', [], postprocess_fn);
-        
-        S_g = reshape(S_g, N, wins_per_subj);
-        S_g_full = [S_g_full, S_g];  % Concatenate across subjects
-    end
-    
-    % Use first subject's metrics as representative
-    [B_g, twom_g] = multicat(A_reshaped_all{grp}(1,:), gamma, omega);
-    postprocess_fn = @(S) postprocess_categorical_multilayer(S, wins_per_subj);
-    [~, Q_g] = iterated_genlouvain(B_g, 10000, 0, 1, 'moverandw', [], postprocess_fn);
-    Q_g = Q_g / twom_g;
-    
-    comm_num = max(S_g_full, [], 'all');
-    
-    S_g_all{grp} = S_g_full;
-    Q_g_all(grp) = Q_g;
-    comm_all(grp) = comm_num;
-end
-
-% Extract individual results
-S_g1 = S_g_all{1}; Q_g1 = Q_g_all(1); comm_g1 = comm_all(1);
-S_g2 = S_g_all{2}; Q_g2 = Q_g_all(2); comm_g2 = comm_all(2);
-S_g3 = S_g_all{3}; Q_g3 = Q_g_all(3); comm_g3 = comm_all(3);
-S_g4 = S_g_all{4}; Q_g4 = Q_g_all(4); comm_g4 = comm_all(4);
+% parfor grp = 1:4
+%     fprintf('Processing %s modularity...\n', group_names{grp});
+% 
+%     n_subj = n_subjects_all(grp);
+%     wins_per_subj = size(A_reshaped_all{grp}, 2);
+% 
+%     % Initialize S_g to collect all subjects
+%     S_g_full = [];
+% 
+%     % Compute modularity for ALL subjects in this group
+%     for subj_i = 1:n_subj
+%         % [B_g, twom_g] = multicat(A_reshaped_all{grp}(subj_i,:), gamma, omega);
+%         [B_g, twom_g] = multiord(A_reshaped_all{grp}(subj_i,:), gamma, omega);
+%         % postprocess_fn = @(S) postprocess_categorical_multilayer(S, wins_per_subj);
+%         postprocess_fn = @(S) postprocess_ordinal_multilayer(S, wins_per_subj);
+%         [S_g, Q_g] = iterated_genlouvain(B_g, 10000, 0, 1, 'moverandw', [], postprocess_fn);
+% 
+%         S_g = reshape(S_g, N, wins_per_subj);
+%         S_g_full = [S_g_full, S_g];  % Concatenate across subjects
+%     end
+% 
+%     % Use first subject's metrics as representative
+%     % [B_g, twom_g] = multicat(A_reshaped_all{grp}(1,:), gamma, omega);
+%     [B_g, twom_g] = multiord(A_reshaped_all{grp}(1,:), gamma, omega);
+%     % postprocess_fn = @(S) postprocess_categorical_multilayer(S, wins_per_subj);
+%     postprocess_fn = @(S) postprocess_ordinal_multilayer(S, wins_per_subj);
+%     [~, Q_g] = iterated_genlouvain(B_g, 10000, 0, 1, 'moverandw', [], postprocess_fn);
+%     Q_g = Q_g / twom_g;
+% 
+%     comm_num = max(S_g_full, [], 'all');
+% 
+%     S_g_all{grp} = S_g_full;
+%     Q_g_all(grp) = Q_g;
+%     comm_all(grp) = comm_num;
+% end
+% 
+% % Extract individual results
+% S_g1 = S_g_all{1}; Q_g1 = Q_g_all(1); comm_g1 = comm_all(1);
+% S_g2 = S_g_all{2}; Q_g2 = Q_g_all(2); comm_g2 = comm_all(2);
+% S_g3 = S_g_all{3}; Q_g3 = Q_g_all(3); comm_g3 = comm_all(3);
+% S_g4 = S_g_all{4}; Q_g4 = Q_g_all(4); comm_g4 = comm_all(4);
 
 
 %% Consensus Community Detection IN PARALLEL
@@ -199,7 +208,7 @@ multi_comm_indivi_all = cell(4, 1);
 parfor grp = 1:4
     fprintf('Processing %s individual communities...\n', group_names{grp});
     multi_comm_indivi_all{grp} = multilayer_community_detection_individual( ...
-    A_reshaped_all{grp}, 'ord', 'n_repeat', 100, 'thresh_type', 'max', 'gamma', gamma, 'omega', omega);
+    A_reshaped_all{grp}, 'ord', 'n_repeat', 100, 'thresh_type', 'max', 'gamma', gamma, 'omega', omega); % cat
 
 end
 
@@ -251,12 +260,12 @@ Qmod_g2 = Qmod_g_all{2};
 Qmod_g3 = Qmod_g_all{3};
 Qmod_g4 = Qmod_g_all{4};
 
-%% Verify shapes match
-fprintf('\n===== SHAPE VERIFICATION =====\n');
-fprintf('S_g1: %d x %d, N_all_g1: %d x %d\n', size(S_g1,1), size(S_g1,2), size(N_all_g1,1), size(N_all_g1,2));
-fprintf('S_g2: %d x %d, N_all_g2: %d x %d\n', size(S_g2,1), size(S_g2,2), size(N_all_g2,1), size(N_all_g2,2));
-fprintf('S_g3: %d x %d, N_all_g3: %d x %d\n', size(S_g3,1), size(S_g3,2), size(N_all_g3,1), size(N_all_g3,2));
-fprintf('S_g4: %d x %d, N_all_g4: %d x %d\n', size(S_g4,1), size(S_g4,2), size(N_all_g4,1), size(N_all_g4,2));
+% %% Verify shapes match
+% fprintf('\n===== SHAPE VERIFICATION =====\n');
+% fprintf('S_g1: %d x %d, N_all_g1: %d x %d\n', size(S_g1,1), size(S_g1,2), size(N_all_g1,1), size(N_all_g1,2));
+% fprintf('S_g2: %d x %d, N_all_g2: %d x %d\n', size(S_g2,1), size(S_g2,2), size(N_all_g2,1), size(N_all_g2,2));
+% fprintf('S_g3: %d x %d, N_all_g3: %d x %d\n', size(S_g3,1), size(S_g3,2), size(N_all_g3,1), size(N_all_g3,2));
+% fprintf('S_g4: %d x %d, N_all_g4: %d x %d\n', size(S_g4,1), size(S_g4,2), size(N_all_g4,1), size(N_all_g4,2));
 
 %% Save Results (Sequential)
 fprintf('\n===== SAVING RESULTS =====\n');
@@ -268,7 +277,7 @@ if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 % Save Group 1 (PreFES)
 out_prefes = struct();
 out_prefes.N_all_g_prefes = N_all_g1;
-out_prefes.S_g_prefes = S_g1;
+% out_prefes.S_g_prefes = S_g1;
 out_prefes.Q_g_prefes = Qmod_g1;
 out_prefes.comm_cons_all_g_prefes = comm_cons_g1;
 save(fullfile(out_dir, 'mlcd_prefes_8tr_wins.mat'), '-struct', 'out_prefes', '-v7.3');
@@ -277,7 +286,7 @@ fprintf('Saved mlcd_prefes_8tr_wins.mat\n');
 % Save Group 2 (PreNFES)
 out_prenfes = struct();
 out_prenfes.N_all_g_prenfes = N_all_g2;
-out_prenfes.S_g_prenfes = S_g2;
+% out_prenfes.S_g_prenfes = S_g2;
 out_prenfes.Q_g_prenfes = Qmod_g2;
 out_prenfes.comm_cons_all_g_prenfes = comm_cons_g2;
 save(fullfile(out_dir, 'mlcd_prenfes_8tr_wins.mat'), '-struct', 'out_prenfes', '-v7.3');
@@ -286,7 +295,7 @@ fprintf('Saved mlcd_prenfes_8tr_wins.mat\n');
 % Save Group 3 (PostFES)
 out_postfes = struct();
 out_postfes.N_all_g_postfes = N_all_g3;
-out_postfes.S_g_postfes = S_g3;
+% out_postfes.S_g_postfes = S_g3;
 out_postfes.Q_g_postfes = Qmod_g3;
 out_postfes.comm_cons_all_g_postfes = comm_cons_g3;
 save(fullfile(out_dir, 'mlcd_postfes_8tr_wins.mat'), '-struct', 'out_postfes', '-v7.3');
@@ -295,7 +304,7 @@ fprintf('Saved mlcd_postfes_8tr_wins.mat\n');
 % Save Group 4 (PostNFES)
 out_postnfes = struct();
 out_postnfes.N_all_g_postnfes = N_all_g4;
-out_postnfes.S_g_postnfes = S_g4;
+% out_postnfes.S_g_postnfes = S_g4;
 out_postnfes.Q_g_postnfes = Qmod_g4;
 out_postnfes.comm_cons_all_g_postnfes = comm_cons_g4;
 save(fullfile(out_dir, 'mlcd_postnfes_8tr_wins.mat'), '-struct', 'out_postnfes', '-v7.3');
