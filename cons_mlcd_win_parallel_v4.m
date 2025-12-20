@@ -1,10 +1,16 @@
 % Clear workspace and command window
-clear;
-clc;
+clear; clc; clear global;
+
 
 %% Parameter Initialization
 gamma = 1.0; %1.2; 1.21; 1
 omega = 1.0; %1.5; 0.1; 1
+
+out_dir = '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/modularity_var/';
+if ~exist(out_dir, 'dir'), mkdir(out_dir); end
+
+DO_PLOT = true;   % <-- set to false to skip plotting
+density = 0.30;   % keep top 10% of unique (undirected) edges 
 
 % ---------- Trying to use all local cores ----------
 if isempty(gcp('nocreate'))
@@ -13,10 +19,10 @@ end
 
 %% MANUAL CONFIGURATION: Number of subjects per group
 % Based on my Python output with flatten subjects x windows -> (S*W, R, R) 
-n_subjects_g1 = 1;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g2 = 1;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
-n_subjects_g3 = 1;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
-n_subjects_g4 = 1;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g1 = 7;  % PreFES:  (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g2 = 5;  % PreNFES: (5, 50, 200, 200) -> (250, 200, 200)
+n_subjects_g3 = 7;  % PostFES: (7, 50, 200, 200) -> (350, 200, 200)
+n_subjects_g4 = 5;  % PostNFES: (5, 50, 200, 200) -> (250, 200, 200)
 
 fprintf('===== SUBJECT CONFIGURATION =====\n');
 fprintf('PreFES:   %d subjects\n', n_subjects_g1);
@@ -33,7 +39,7 @@ file_paths = {
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows_1sub.mat';
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows_1sub.mat';
     % '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_nfes_8tr_windows_1sub.mat'
-
+    % % 
     '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_fes_8tr_windows.mat';
     '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_pre_nfes_8tr_windows.mat';
     '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/fc/corr_post_fes_8tr_windows.mat';
@@ -65,38 +71,190 @@ fprintf('Processing correlation matrices...\n');
 
 corr_g_all = cell(4, 1);
 T_g_all = zeros(4, 1);
+adj_g_all = cell(4, 1);
 n_subjects_array = [n_subjects_g1, n_subjects_g2, n_subjects_g3, n_subjects_g4];
 
 parfor grp = 1:4
-    % Each file has ONE variable corr_<group> with shape (subjects*windows, R, R)
+% for grp = 1:4
     % Just extract the single variable directly
-    corr_field = corr_fields_all{grp}{1};  % Get the single corr_ variable name
-    corr_data = S_all{grp}.(corr_field);   % (subjects*windows, R, R)
-    
+    corr_field = corr_fields_all{grp}{1};      % single corr_ variable name
+    corr_data  = S_all{grp}.(corr_field);      % (subjects*windows, R, R)
+
     % Permute to (R, R, subjects*windows)
-    corr_g = permute(corr_data, [2 3 1]);
-    
-    % Clean correlation matrices
-    corr_g = 0.5 * (corr_g + permute(corr_g, [2 1 3]));
-    N = size(corr_g, 1);
-    T_g = size(corr_g, 3);
-    maskI = repmat(eye(N,'logical'), 1, 1, T_g);
-    corr_g(maskI) = 1;
+    corr_g = permute(corr_data, [2 3 1]);     
+
+    % Step 1: Symmetry correction
+    asym_before = corr_g - permute(corr_g, [2 1 3]);
+    max_asym    = max(abs(asym_before), [], 'all');
+    n_asym      = nnz(abs(asym_before) > eps);
+    corr_g      = 0.5 * (corr_g + permute(corr_g,[2 1 3]));
+
+    % Step 2: Diagonal replacement
+    N   = size(corr_g,1);
+    T_g = size(corr_g,3);
+    maskI = repmat(eye(N,'logical'),1,1,T_g);
+    n_diag_off = nnz(corr_g(maskI) ~= 1);
+    corr_g(maskI) = 0;   % (your choice: 0 here since you remove self-edges later)
+
+    % Step 3: Non-finite cleanup
+    n_nonfinite = nnz(~isfinite(corr_g));
     corr_g(~isfinite(corr_g)) = 0;
-    
-    % Randomize window order per subject (50 windows each)
-    corr_g = randomize_windows_per_subject(corr_g, n_subjects_array(grp));
 
+    % Report summary
+    fprintf('Cleaning summary (group %d):\n', grp);
+    fprintf('  Symmetry: max asym = %.3e, mismatched entries = %d\n', max_asym, n_asym);
+    fprintf('  Diagonal corrections: %d entries set to 0\n', n_diag_off);
+    fprintf('  Non-finite corrections: %d entries set to 0\n', n_nonfinite);
+
+    %% === Build adjacency matrices (proportional thresholding, density; weighted, no binarization) ===
+    adj_g   = zeros(N, N, T_g);
+
+    upmask = triu(true(N), 1);               % upper triangle (no diag)
+    [ri, ci] = find(upmask);
+    M = numel(ri);                           % # undirected edges
+    K = max(0, round(density * M));          % target edges per window
+
+    for t = 1:T_g
+        Ak = corr_g(:,:,t);
+        Ak(1:N+1:end) = 0;                   % no self-edges
+        Ak(Ak < 0)    = 0;                   % droe  negatives for unsigned
+
+        % Gather upper-tri weights, keep the top K positives
+        w = Ak(upmask);
+        pos_idx = find(w > 0);
+        if isempty(pos_idx) || K == 0
+            adj_g(:,:,t) = zeros(N);
+            continue;
+        end
+        Kt = min(K, numel(pos_idx));
+        [~, ord] = sort(w(pos_idx), 'descend');
+        keep_pos = pos_idx(ord(1:Kt));
+
+        Akeep = zeros(N);
+        lin   = sub2ind([N N], ri(keep_pos), ci(keep_pos));
+        Akeep(lin) = w(keep_pos);
+        Akeep = Akeep + Akeep.';             % symmetrize
+        adj_g(:,:,t) = Akeep;
+    end
+
+    % achieved density report (upper-tri)
+    upmask3 = repmat(upmask, 1, 1, T_g);
+    nz_upper = squeeze(sum(sum((adj_g > 0) & upmask3, 1), 2));  % 1×T_g
+    achieved_density = nz_upper / M;
+    fprintf('Adjacency build (group %d): target=%.3f, median=%.3f (IQR: [%.3f, %.3f])\n', ...
+        grp, density, median(achieved_density), quantile(achieved_density,0.25), quantile(achieved_density,0.75));
+
+    % Combined visualization: Raw vs Cleaned vs Adjacency
+    if DO_PLOT
+        % Raw stack (R x R x T_total)
+        sz = size(corr_data);
+        if numel(sz) ~= 3
+            error('corr_data must be 3-D (either T×R×R or R×R×T).');
+        end
+        if sz(1) == sz(2)
+            corr_stack = corr_data;          % already R x R x T
+            T_total    = sz(3);
+        else
+            corr_stack = permute(corr_data, [2 3 1]);   % R x R x T
+            T_total    = sz(1);
+        end
+
+        % Row count depends on whether adjacency is available
+        show_adj = ~isempty(adj_g);
+        nrows    = 2 + show_adj;             % 2 or 3 rows
+
+        % Indices to plot: 10, 20, 30, 40, 50 (bounded by T)
+        T_use = min([T_total, size(corr_g,3), size(adj_g,3)]);
+        idx   = 10:10:min(50, T_use);
+        if isempty(idx)
+            warning('No indices selected (T = %d). Need at least 10 windows.', T_use);
+        else
+            % Shared color limits across selected panels
+            min_all = inf; max_all = -inf;
+            for j = 1:numel(idx)
+                kWin = idx(j);
+                Araw = corr_stack(:,:,kWin);
+                Acln = corr_g(:,:,kWin);
+                min_all = min([min_all, min(Araw(:)), min(Acln(:))]);
+                max_all = max([max_all, max(Araw(:)), max(Acln(:))]);
+                if show_adj
+                    Aadj = adj_g(:,:,kWin);
+                    min_all = min(min_all, min(Aadj(:)));
+                    max_all = max(max_all, max(Aadj(:)));
+                end
+            end
+            clims = [min_all, max_all];
+
+            % Layout: rows = Raw; Cleaned; (Adjacency), columns = #windows
+            nplots = numel(idx);
+            ncols  = nplots;
+
+            % Create invisible figure (then save)
+            f  = figure('Visible','off','Color','w', ...
+                'Name', sprintf('Group %d: Raw vs Cleaned vs Adjacency', grp));
+            tl = tiledlayout(nrows, ncols, 'Padding','compact', 'TileSpacing','compact');
+
+            for j = 1:nplots
+                kWin = idx(j);
+
+                % Row 1: RAW
+                ax1 = nexttile(j);
+                imagesc(corr_stack(:,:,kWin), clims);
+                axis(ax1, 'image'); axis(ax1, 'off');
+                title(ax1, sprintf('Raw %d (min=%.2f, max=%.2f)', kWin, ...
+                    min(corr_stack(:,:,kWin),[],'all'), max(corr_stack(:,:,kWin),[],'all')), 'FontSize', 6);
+
+                % Row 2: CLEANED
+                ax2 = nexttile(j + ncols);
+                imagesc(corr_g(:,:,kWin), clims);
+                axis(ax2, 'image'); axis(ax2, 'off');
+                title(ax2, sprintf('Clean %d (min=%.2f, max=%.2f)', kWin, ...
+                    min(corr_g(:,:,kWin),[],'all'), max(corr_g(:,:,kWin),[],'all')), 'FontSize', 6);
+
+                % Row 3: ADJACENCY
+                if show_adj
+                    ax3 = nexttile(j + 2*ncols);
+                    imagesc(adj_g(:,:,kWin), clims);
+                    axis(ax3, 'image'); axis(ax3, 'off');
+                    title(ax3, sprintf('Adj %d (min=%.2f, max=%.2f)', kWin, ...
+                        min(adj_g(:,:,kWin),[],'all'), max(adj_g(:,:,kWin),[],'all')), 'FontSize', 6);
+                end
+            end
+
+            colormap(parula);
+            cb = colorbar;            % shared colorbar on the right for tiledlayout 
+            try, cb.Layout.Tile = 'east'; end
+
+            if show_adj
+                title(tl, 'FC — Raw (top) vs Cleaned (middle) vs Adjacency (bottom);', 'FontSize', 7);
+            else
+                title(tl, 'FC — Raw (top) vs Cleaned (bottom); shared color scale', 'FontSize', 7);
+            end
+
+            % Save directly to file 
+            out_plot_dir = fullfile(out_dir, 'plots');
+            if ~exist(out_plot_dir, 'dir'), mkdir(out_plot_dir); end
+            out_file = fullfile(out_plot_dir, sprintf('group%d_plot.png', grp));
+            exportgraphics(f, out_file, 'Resolution', 200);
+
+            close(f);  % free memory
+        end
+    end
+
+    % Store per-group results  
     corr_g_all{grp} = corr_g;
-    T_g_all(grp) = T_g;
-
+    T_g_all(grp)    = T_g;
+    adj_g_all{grp}  = adj_g;
 end
 
+
+
+
 % Extract individual groups
-corr_g1 = corr_g_all{1}; T_g1 = T_g_all(1);
-corr_g2 = corr_g_all{2}; T_g2 = T_g_all(2);
-corr_g3 = corr_g_all{3}; T_g3 = T_g_all(3);
-corr_g4 = corr_g_all{4}; T_g4 = T_g_all(4);
+corr_g1 = corr_g_all{1}; T_g1 = T_g_all(1); adj_g1 = adj_g_all{1};
+corr_g2 = corr_g_all{2}; T_g2 = T_g_all(2); adj_g2 = adj_g_all{2};
+corr_g3 = corr_g_all{3}; T_g3 = T_g_all(3); adj_g3 = adj_g_all{3};
+corr_g4 = corr_g_all{4}; T_g4 = T_g_all(4); adj_g4 = adj_g_all{4};
 N = size(corr_g1, 1);
 
 % Verify subject counts match expectations
@@ -116,10 +274,10 @@ clear S_all corr_g_all
 fprintf('\nPreparing adjacency matrices...\n');
 
 % Create cell arrays
-A_g1 = squeeze(num2cell(corr_g1, [1,2]));
-A_g2 = squeeze(num2cell(corr_g2, [1 2]));
-A_g3 = squeeze(num2cell(corr_g3, [1 2]));
-A_g4 = squeeze(num2cell(corr_g4, [1 2]));
+A_g1 = squeeze(num2cell(adj_g1, [1,2]));
+A_g2 = squeeze(num2cell(adj_g2, [1 2]));
+A_g3 = squeeze(num2cell(adj_g3, [1 2]));
+A_g4 = squeeze(num2cell(adj_g4, [1 2]));
 
 fprintf('\n===== RESHAPING FOR MULTILAYER STRUCTURE =====\n');
 
@@ -128,14 +286,6 @@ A_g1_reshaped = reshape_for_multilayer(A_g1, n_subjects_g1, T_g1, 'PreFES');
 A_g2_reshaped = reshape_for_multilayer(A_g2, n_subjects_g2, T_g2, 'PreNFES');
 A_g3_reshaped = reshape_for_multilayer(A_g3, n_subjects_g3, T_g3, 'PostFES');
 A_g4_reshaped = reshape_for_multilayer(A_g4, n_subjects_g4, T_g4, 'PostNFES');
-
-% A_g1_reshaped = A_g1;
-% A_g2_reshaped = A_g2;
-% A_g3_reshaped = A_g3;
-% A_g4_reshaped = A_g4;
-
-% To-do
-%Top 5%, 10%, 15%, 20%, and 30% edge density levels. 
 
 
 %% Multi-layer Modularity Calculation IN PARALLEL
@@ -265,8 +415,6 @@ Qmod_g4 = Qmod_g_all{4};
 fprintf('\n===== SAVING RESULTS =====\n');
 
 
-out_dir = '/Users/ismaila/Documents/C-Codes/SCI_FES_GraphAnalysis/sci_data/SCI/modularity_var/';
-if ~exist(out_dir, 'dir'), mkdir(out_dir); end
 
 % Save Group 1 (PreFES)
 out_prefes = struct();
@@ -305,3 +453,4 @@ save(fullfile(out_dir, 'mlcd_postnfes_8tr_wins.mat'), '-struct', 'out_postnfes',
 fprintf('Saved mlcd_postnfes_8tr_wins.mat\n');
 
 fprintf('Done in %.2f seconds\n', toc);
+
