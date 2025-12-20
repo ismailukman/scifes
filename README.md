@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains the complete analysis pipeline for investigating dynamic functional brain network organization in Spinal Cord Injury (SCI) patients receiving Functional Electrical Stimulation (FES) therapy using multilayer community detection.
+This repository contains the analysis pipeline for investigating dynamic functional brain network organization in Spinal Cord Injury (SCI) patients receiving Functional Electrical Stimulation (FES) therapy. Analysis based on collected rs-fRMI data, and graph based  multilayer community detection method..
 
 ## Experiment Pipeline
 
