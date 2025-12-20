@@ -106,7 +106,8 @@ for subj_i = 1:n_subj
     end
     
     % Define post-processing function for multilayer modularity optimization
-    PP = @(S) postprocess_categorical_multilayer(S, n_run);
+    % PP = @(S) postprocess_categorical_multilayer(S, n_run); %\
+    PP = @(S) postprocess_ordinal_multilayer(S, n_run);
 
      %5. Run multilayer Louvain community detection for `n_repeat` iterations
     for rep_i = 1:n_repeat
